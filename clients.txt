@@ -1,0 +1,50 @@
+robot:
+
+@vmain
+a:
+- task
+- otherpos
+t:
+
+@vlidar
+a:
+t:
+- lidar
+
+@vpathfinder
+a:
+- end
+- moved
+t:
+
+@vslam
+a:
+- save
+- read
+- setmap
+t:
+- map
+- pos
+
+@vmovement
+a:
+- moveto
+t:
+
+@vcam
+a:
+t:
+- camera
+
+-----
+server:
+
+@ssmain
+a:
+- map
+- pos
+- taskdone
+t:
+- map
+# - task
+- otherpos

@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<package>
+	<name>vslam</name>
+	<entrypoint>main.py</entrypoint>
+	<requires>
+		<requirement>miniros</requirement>
+		<requirement>breezyslam</requirement>
+	</requires>
+	<maintainer>Vadimych1</maintainer>
+	<description>VBot SLAM</description>
+	<authors>
+		<author>Vadimych1</author>
+	</authors>
+	<otherexts>
+		<ext>
+			"cd ../breezyslam &amp;&amp; python3 setup.py bdist_wheel &amp;&amp; python3 -c "import os, glob; os.system('pip3 install --force --no-index ' + max(glob.glob('dist/*.whl'), key=os.path.getctime))""
+		</ext>
+	</otherexts>
+</package>

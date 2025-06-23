@@ -1,0 +1,10 @@
+setup.py
+miniros_vcam/__init__.py
+miniros_vcam/main.py
+miniros_vcam.egg-info/PKG-INFO
+miniros_vcam.egg-info/SOURCES.txt
+miniros_vcam.egg-info/dependency_links.txt
+miniros_vcam.egg-info/top_level.txt
+miniros_vcam/source/__init__.py
+miniros_vcam/source/codes.py
+miniros_vcam/source/datatypes.py

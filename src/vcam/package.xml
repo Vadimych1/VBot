@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<package>
+	<name>vcam</name>
+	<entrypoint>main.py</entrypoint>
+	<requires>
+		<requirement>miniros</requirement>
+	</requires>
+	<maintainer>Vadimych1</maintainer>
+	<description>VBot Camera handler</description>
+	<authors>
+		<author>Vadimych1</author>
+	</authors>
+	<otherexts>
+		<ext>pip install pyzbar</ext>
+	</otherexts>
+</package>

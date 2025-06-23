@@ -1,0 +1,151 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VBot Control Panel</title>
+
+    <style>
+        body {
+            padding: 0; 
+            margin: 0; 
+            inset: 0; 
+            display: flex; 
+            flex-direction: row;
+            font-family: sans-serif;
+        }
+
+        .left-side {
+            background-color: red; 
+            height: min(100vh, 100vw); 
+            width: min(100vh, 100vw);
+        }
+
+        .right-side {
+            width: 100%; 
+            padding-left: 20px;
+        }
+
+
+        .orders-list {
+            display: flex;
+            flex-wrap: wrap;
+            flex-direction: row;
+        }
+
+        .order {
+            box-shadow: 1px 1px 10px gray;
+            padding: 10px 20px;
+        }
+
+        .order-items {
+            list-style: disc;
+            padding-left: 30px;
+        }
+
+        .order button {
+            background-color: rgb(235, 75, 75);
+            color: #fff;
+            font-size: 15px;
+            padding: 7px 15px;
+            border: none;
+            outline: none;
+            box-shadow: 2px 2px 10px gray;
+
+            transition: 0.3s;
+        }
+
+        .order button:hover {
+            cursor: pointer;
+            filter: brightness(0.94);
+        }
+    </style>
+</head>
+<body>
+    <canvas class="left-side" width="1000" height="1000"></canvas>
+    <div class="right-side">
+        <div class="orders">
+            <h1>Orders</h1>
+
+            <div class="orders-list">
+                
+            </div>
+            
+
+            <h2>New order</h2>
+            <form class="order-form" action="order"></form>
+        </div>
+
+        <hr>
+
+        <div class="loads">
+            <div class="load"></div>
+
+            <form class="load-form" action="order"></form>
+        </div>
+
+        <hr>
+
+        <div class="connected-robots"></div>
+    </div>
+
+    <noscript>Ваш браузер не поддерживает JS. Для продолжения работы используйте другой браузер или обновите этот.</noscript>
+</body>
+<script>
+    const cvs = document.querySelector("canvas");
+    const ctx = cvs.getContext("2d");
+
+    ctx.font = "30px sans-serif"
+
+    const offset = 70;
+    let state = {
+        "addr": "",
+        "nrobots": 0,
+    };
+
+    function draw(mmPerPixel = 1, dots = []) {
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+        if (state) {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, cvs.width, offset)
+            ctx.fillStyle = "white";
+            ctx.fillText("Address: " + state.addr + " | ", 10, offset - 25);
+            ctx.fillText("Robots count: " + state.nrobots + " | ", 20 + ctx.measureText("Address: " + state.addr + " | ").width, offset - 25);
+        }
+    }
+
+    function cancel_order(id) {} // todo
+
+    function order(id = "", to = "", items = []) {
+        const order = document.createElement("div");
+        order.className = "order";
+
+        const order_id = document.createElement("p");
+        order_id.className = "order-id";
+        order_id.innerText = "ID: " + id;
+        order.appendChild(order_id);
+
+        const order_items = document.createElement("ul");
+        order_items.className = "order-items";
+        order.appendChild(order_items);
+
+        for (const order_item_t of items) {
+            const order_item = document.createElement("li");
+            order_item.innerText = order_item_t;
+            order_items.appendChild(order_item);
+        }
+
+        const order_to = document.createElement("p");
+        order_to.className = "order-to";
+        order_to.innerText = "Ordered to: " + to;
+        order.appendChild(order_to);
+
+        const cancel_order = document.createElement("button");
+        cancel_order.innerText = "Cancel";
+        cancel_order.onclick = function () {cancel_order(id)};
+    }
+
+    setInterval(draw, 300);
+
+</script>
+</html>
