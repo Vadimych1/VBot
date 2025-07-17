@@ -1,7 +1,7 @@
 from miniros import AsyncROSClient
 from miniros.util.decorators import decorators
 from miniros_vlidar.source.datatypes import LidarData
-import pyrplidar
+import adafruit_rplidar as pyrplidar
 import asyncio
 
 
@@ -9,8 +9,10 @@ class VLidarClient(AsyncROSClient):
     def __init__(self, ip = "localhost", port = 3000):
         super().__init__("vlidar", ip, port)
 
-        self.lidar = pyrplidar.PyRPlidar()
+        self.lidar = pyrplidar.RPLidar(None, "/dev/ttyUSB0", baudrate=115200)
         self.lidar.connect()
+        
+        self.lidar.stop_motor()
 
 
 async def main():
@@ -21,24 +23,38 @@ async def main():
 
         ldr_topic = await client.topic("lidar", LidarData)
 
-        distances = []
-        angles = []
+        client.lidar.start_motor()
 
-        for scan in client.lidar.start_scan():
-            distances.append(scan.distance)
-            angles.append(scan.angle)
+        while True:
+            try:
+                for scan in client.lidar.iter_scans():
+                    quality, angles, distances = zip(*scan)
 
-            if len(distances) >= 360:
-                await ldr_topic.post(
-                    LidarData(
-                        distances,
-                        angles,
+                    print(angles, distances)
+
+                    await ldr_topic.post(
+                        LidarData(
+                            distances,
+                            angles,
+                        )
                     )
-                )
 
-                distances.clear()
-                angles.clear()
+            except pyrplidar.RPLidarException as e:
+                print(f"Lidar exception: {e}. Reconnecting...")
+                
+                client.lidar.stop()
+                client.lidar.disconnect()
 
+                await asyncio.sleep(0.4)
+                
+                client.lidar = pyrplidar.RPLidar(None, "/dev/ttyUSB0")
+                
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                
+                await asyncio.sleep(0.2)
+                
+                
     await asyncio.gather(
         client.run(),
         run(),
