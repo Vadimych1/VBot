@@ -11,6 +11,6 @@
 		<author>Vadimych1</author>
 	</authors>
 	<otherexts>
-		<ext>pip3 install pyrplidar</ext>
+		<!-- <ext>sudo pip3 install pyrplidar</ext> -->
 	</otherexts>
 </package>
