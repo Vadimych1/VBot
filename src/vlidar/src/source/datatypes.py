@@ -14,11 +14,11 @@ class LidarData(NumpyArray):
                 data.angles
             ]
         )
-        return super().encode(data)
+        return NumpyArray.encode(data)
     
     @staticmethod
     def decode(data: "LidarData"):
-        data = super().decode(data)
+        data = NumpyArray.decode(data)
 
         return LidarData(
             data[0],
