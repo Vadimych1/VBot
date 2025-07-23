@@ -1,4 +1,4 @@
-from miniros.util.datatypes import Datatype, Movement, Int, Vector
+from miniros.util.datatypes import Datatype, Movement, Int, Dict, Vector
 import numpy as np
 
 class SLAMMap(Datatype):
@@ -17,16 +17,29 @@ class SLAMMap(Datatype):
     def to_numpy(self, mapsize: int) -> np.ndarray:
         return np.frombuffer(self.data, dtype=np.uint8).reshape((mapsize, mapsize))
 
-class SLAMPosition(Movement):
+class _Movement(Movement):
+    @staticmethod
+    def decode(data, decoders = { 0: Vector }):
+        d = Dict.decode(data, decoders)
+        
+        print(d, data)
+        
+        return _Movement(
+            d["pos"],
+            d["ang"]
+        )
+
+
+class SLAMPosition(_Movement):
     @staticmethod
     def decode(data):
-        q = Movement.decode(data)
+        q = _Movement.decode(data)
         return SLAMPosition(q.pos, q.ang)
     
     @staticmethod
     def encode(data):
-        return Movement.encode(
-            Movement(
+        return _Movement.encode(
+            _Movement(
                 data.pos,
                 data.ang
             )

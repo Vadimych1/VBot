@@ -90,7 +90,7 @@ class Robot:
         self.task = task
 
 class SSMainClient(AsyncROSClient):
-    def __init__(self, ip = "localhost", port = 3000):
+    def __init__(self, ip = "192.168.0.102", port = 3000):
         super().__init__("ssmain", ip, port)
 
         self.robots: dict[str, Robot] = {}

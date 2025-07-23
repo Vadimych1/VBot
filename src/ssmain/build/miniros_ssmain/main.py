@@ -90,7 +90,7 @@ class Robot:
         self.task = task
 
 class SSMainClient(AsyncROSClient):
-    def __init__(self, ip = "localhost", port = 3000):
+    def __init__(self, ip = "192.168.0.102", port = 3000):
         super().__init__("ssmain", ip, port)
 
         self.robots: dict[str, Robot] = {}
@@ -161,12 +161,16 @@ ticker_05 = Ticker(0.25)
 
 client = SSMainClient()
 
+
+async def main():
+    await asyncio.gather(
+        client.run(),
+        run(),
+    )
+    
+
 async def run():
-    while not client.client._is_running:
-        await asyncio.sleep(0.1)
-        print("Waiting")
-        
-    print("started")
+    await client.wait()
 
     map_topic = await client.topic("map", SLAMMap)
     # task_topic = await client.topic("task", TaskDatatype)
@@ -200,10 +204,5 @@ async def run():
 
         # TODO: merge maps and post
 
-async def main():
-    await asyncio.gather(
-        client.run(),
-        run(),
-    )
-    
-asyncio.run(main()) 
+
+asyncio.run(main())
