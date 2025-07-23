@@ -89,7 +89,8 @@ def smooth_path(path, grid, alpha=0.5, beta=0.1, iterations=100):
             obs_force = obstacle_force(path[i], grid)
             path[i] += (alpha * original + \
                     beta * smoothness + \
-                    0.2 * obs_force).astype(np.uint32)
+                    0.2 * obs_force).astype(int)
+            
     return path
 
 def obstacle_force(point, grid, radius=4):
@@ -188,20 +189,3 @@ def visualize_comparison(original, simplified):
     plt.legend()
     plt.title(f"Simplification: {len(original)} -> {len(simplified)} points")
     plt.show()
-
-
-grid = np.zeros((100, 100), dtype=np.int16)
-
-path = []
-for x in range(100):
-    path.append((x, 0))
-
-for y in range(100):
-    path.append((100, y))
-
-path = np.asarray(path, dtype=np.int16)
-
-simplified = simplify_path(path, grid)
-simplified = smooth_path(simplified, grid, iterations=40)
-
-visualize_comparison(path, simplified)

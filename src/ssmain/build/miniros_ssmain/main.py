@@ -1,11 +1,12 @@
 import argparse
 import json
 import sqlite3 as sql
-from miniros import ROSClient, datatypes, decorators
+from miniros import AsyncROSClient, datatypes, decorators
 from miniros.util.util import Ticker
 from miniros_vslam.source.datatypes import SLAMMap, SLAMPosition
 from miniros_ssmain.source.datatypes import Task as TaskDatatype
 import http.server as http
+import asyncio
 
 parser = argparse.ArgumentParser()
 parser.add_argument("cfg_file")
@@ -88,14 +89,14 @@ class Robot:
         self.map = map
         self.task = task
 
-class SSMainClient(ROSClient):
-    def __init__(self, ip = "localhost", port = 3000):
+class SSMainClient(AsyncROSClient):
+    def __init__(self, ip = "192.168.0.102", port = 3000):
         super().__init__("ssmain", ip, port)
 
         self.robots: dict[str, Robot] = {}
 
     @decorators.parsedata(SLAMMap, 1)
-    def on_map(self, data: SLAMMap, from_node: str):
+    async def on_map(self, data: SLAMMap, from_node: str):
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 None,
@@ -107,7 +108,9 @@ class SSMainClient(ROSClient):
             self.robots[from_node].map = data
 
     @decorators.parsedata(SLAMPosition, 1)
-    def on_pos(self, data: SLAMPosition, from_node: str):
+    async def on_pos(self, data: SLAMPosition, from_node: str):
+        print("Got pos from", from_node)
+        
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 data,
@@ -118,7 +121,7 @@ class SSMainClient(ROSClient):
         else:
             self.robots[from_node].pos = data
 
-    def on_taskdone(self, data: datatypes.Int, from_node: str):
+    async def on_taskdone(self, data: datatypes.Int, from_node: str):
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 None,
@@ -141,10 +144,12 @@ class HTTPHandler(http.SimpleHTTPRequestHandler):
                 "/": self.on_home,
             }[path]()
 
-            self.send_response(status),
+            self.send_response(status)
             self.send_header("Content-Type", dtype)
+            self.end_headers()
             self.wfile.write(data.encode() if type(data) is not bytes else data)
-        except:
+        except Exception as e:
+            print(e)
             self.send_error(404)
 
 httpserver = http.HTTPServer(("localhost", 5000), HTTPHandler)
@@ -152,16 +157,27 @@ httpthread = decorators.threaded()(httpserver.serve_forever)()
 
 ticker = Ticker(2)
 ticker_05 = Ticker(0.25)
-if __name__ == "__main__":
-    client = SSMainClient()
-    t = client.run()
 
-    map_topic = client.topic("map", SLAMMap)
-    # task_topic = client.topic("task", TaskDatatype)
-    otherpos_topic = client.topic("otherpos", datatypes.Dict)
+
+client = SSMainClient()
+
+
+async def main():
+    await asyncio.gather(
+        client.run(),
+        run(),
+    )
+    
+
+async def run():
+    await client.wait()
+
+    map_topic = await client.topic("map", SLAMMap)
+    # task_topic = await client.topic("task", TaskDatatype)
+    otherpos_topic = await client.topic("otherpos", datatypes.Dict)
 
     while True:
-        ticker.tick()
+        await ticker.tick_async()
 
         if ticker_05.check():
             cur.execute("SELECT * FROM Orders WHERE state = 0")
@@ -171,7 +187,7 @@ if __name__ == "__main__":
                 for name, robot in client.robots.items():
                     if robot.task is None:
                         robot.task = order
-                        client.anon(name, "task", TaskDatatype.encode(
+                        await client.anon(name, "task", TaskDatatype.encode(
                             {
                                 "id": order.id,
                                 "output_qr": order.output_qr,
@@ -180,7 +196,7 @@ if __name__ == "__main__":
 
                         break
 
-        otherpos_topic.post(
+        await otherpos_topic.post(
             {
                 k: datatypes.Vector(v.pos.pos.x, v.pos.ang.y, v.pos.pos.z) for k, v in client.robots.items() 
             }
@@ -188,6 +204,5 @@ if __name__ == "__main__":
 
         # TODO: merge maps and post
 
-        
 
-    t.join()
+asyncio.run(main())

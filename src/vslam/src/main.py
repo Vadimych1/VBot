@@ -2,7 +2,7 @@ from miniros import AsyncROSClient
 from miniros.util.decorators import decorators
 from miniros.util.datatypes import Vector
 from miniros.util.util import Ticker
-from miniros_vslam.source.datatypes import SLAMMap, SLAMPosition, SLAMAnonSave, SLAMAnonLoad
+from miniros_vslam.source.datatypes import SLAMMap, SLAMAnonSave, SLAMAnonLoad, SLAMPosition
 import miniros_breezyslam.algorithms as algos
 import miniros_breezyslam.sensors as sensors
 import miniros_vlidar.source.datatypes as vlidar_datatypes
@@ -46,12 +46,10 @@ class VSLAMClient(AsyncROSClient):
 
 
     @decorators.aparsedata(vlidar_datatypes.LidarData)
-    async def on_vlidar_lidar(self, data: vlidar_datatypes.LidarData):
-        dist, ang = data.distances, data.angles
-        self.slam.update(
-            dist,
-            scan_angles_degrees=ang,
-        )
+    async def on_vlidar_lidar(self, data: vlidar_datatypes.LidarData):        
+        dist, ang = list(data.distances), list(data.angles)
+        
+        self.slam.update(scans_mm=dist, scan_angles_degrees=ang)
 
         self.slam.getmap(self.map)
         self.pos = self.slam.getpos()
@@ -82,7 +80,7 @@ async def main():
                     Vector(0, theta, 0)
                 )
             )
-    
+            
     await asyncio.gather(
         client.run(),
         run(),

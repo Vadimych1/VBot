@@ -12,8 +12,5 @@
 		<author>Vadimych1</author>
 	</authors>
 	<otherexts>
-		<ext>
-			"cd ../breezyslam &amp;&amp; python3 setup.py bdist_wheel &amp;&amp; python3 -c "import os, glob; os.system('pip3 install --force --no-index ' + max(glob.glob('dist/*.whl'), key=os.path.getctime))""
-		</ext>
 	</otherexts>
 </package>

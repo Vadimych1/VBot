@@ -90,7 +90,7 @@ class Robot:
         self.task = task
 
 class SSMainClient(AsyncROSClient):
-    def __init__(self, ip = "localhost", port = 3000):
+    def __init__(self, ip = "192.168.0.102", port = 3000):
         super().__init__("ssmain", ip, port)
 
         self.robots: dict[str, Robot] = {}
@@ -109,6 +109,8 @@ class SSMainClient(AsyncROSClient):
 
     @decorators.parsedata(SLAMPosition, 1)
     async def on_pos(self, data: SLAMPosition, from_node: str):
+        print("Got pos from", from_node)
+        
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 data,
@@ -142,7 +144,7 @@ class HTTPHandler(http.SimpleHTTPRequestHandler):
                 "/": self.on_home,
             }[path]()
 
-            self.send_response(status),
+            self.send_response(status)
             self.send_header("Content-Type", dtype)
             self.end_headers()
             self.wfile.write(data.encode() if type(data) is not bytes else data)
@@ -155,47 +157,52 @@ httpthread = decorators.threaded()(httpserver.serve_forever)()
 
 ticker = Ticker(2)
 ticker_05 = Ticker(0.25)
-if __name__ == "__main__":
-    client = SSMainClient()
+
+
+client = SSMainClient()
+
+
+async def main():
+    await asyncio.gather(
+        client.run(),
+        run(),
+    )
     
-    async def run():
-        while not client.client._is_running:
-            await asyncio.sleep(0.1)
 
-        map_topic = await client.topic("map", SLAMMap)
-        # task_topic = await client.topic("task", TaskDatatype)
-        otherpos_topic = await client.topic("otherpos", datatypes.Dict)
+async def run():
+    await client.wait()
 
-        while True:
-            await ticker.tick_async()
+    map_topic = await client.topic("map", SLAMMap)
+    # task_topic = await client.topic("task", TaskDatatype)
+    otherpos_topic = await client.topic("otherpos", datatypes.Dict)
 
-            if ticker_05.check():
-                cur.execute("SELECT * FROM Orders WHERE state = 0")
-                pending_orders = list(map(lambda v: RobotTask(*v), cur.fetchall()))
+    while True:
+        await ticker.tick_async()
 
-                for order in pending_orders:
-                    for name, robot in client.robots.items():
-                        if robot.task is None:
-                            robot.task = order
-                            await client.anon(name, "task", TaskDatatype.encode(
-                                {
-                                    "id": order.id,
-                                    "output_qr": order.output_qr,
-                                }
-                            ))
+        if ticker_05.check():
+            cur.execute("SELECT * FROM Orders WHERE state = 0")
+            pending_orders = list(map(lambda v: RobotTask(*v), cur.fetchall()))
 
-                            break
+            for order in pending_orders:
+                for name, robot in client.robots.items():
+                    if robot.task is None:
+                        robot.task = order
+                        await client.anon(name, "task", TaskDatatype.encode(
+                            {
+                                "id": order.id,
+                                "output_qr": order.output_qr,
+                            }
+                        ))
 
-            await otherpos_topic.post(
-                {
-                    k: datatypes.Vector(v.pos.pos.x, v.pos.ang.y, v.pos.pos.z) for k, v in client.robots.items() 
-                }
-            )
+                        break
 
-            # TODO: merge maps and post
-
-    async def main():
-        await asyncio.gather(
-            client.run(),
-            run(),
+        await otherpos_topic.post(
+            {
+                k: datatypes.Vector(v.pos.pos.x, v.pos.ang.y, v.pos.pos.z) for k, v in client.robots.items() 
+            }
         )
+
+        # TODO: merge maps and post
+
+
+asyncio.run(main())

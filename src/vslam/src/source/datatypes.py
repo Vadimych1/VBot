@@ -1,4 +1,4 @@
-from miniros.util.datatypes import Datatype, Movement, Int, Vector
+from miniros.util.datatypes import Datatype, Movement, Int, Dict, Vector
 import numpy as np
 import struct
 
@@ -36,6 +36,7 @@ class SLAMPosition(Datatype):
         la, lb = len(a), len(b)
         
         return struct.pack(">HH", la, lb) + a + b
+
 
     def pos_to_numpy(self) -> np.ndarray:
         return np.array([self.pos.x, self.pos.y, self.pos.z])
