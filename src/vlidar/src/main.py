@@ -30,14 +30,21 @@ async def main():
 
         while True:
             try:               
-                client.lidar.clean_input()                 
-                for scan in client.lidar.iter_scans():
+                client.lidar.clean_input()
+                                 
+                x = 0
+                for scan in client.lidar.iter_scans(min_len=360):
+                    x += 1
+                    
+                    if x % 3 != 0:
+                        continue
+                    
                     _, angles, distances = zip(*scan)
                 
                     await ldr_topic.post(
                         LidarData(
-                            distances,
-                            angles,
+                            list(distances),
+                            list(angles),
                         )
                     )
 

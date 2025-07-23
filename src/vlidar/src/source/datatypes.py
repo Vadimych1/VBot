@@ -10,10 +10,11 @@ class LidarData(NumpyArray):
     def encode(data: "LidarData"):
         data = np.asarray(
             [
-                data.distances,
-                data.angles
+                *data.distances,
+                *data.angles
             ]
         )
+        
         return NumpyArray.encode(data)
     
     @staticmethod
@@ -21,6 +22,6 @@ class LidarData(NumpyArray):
         data = NumpyArray.decode(data)
 
         return LidarData(
-            data[0],
-            data[1],
+            data[:int(data.shape[0] / 2)],
+            data[int(data.shape[0] / 2):],
         )

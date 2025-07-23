@@ -161,12 +161,16 @@ ticker_05 = Ticker(0.25)
 
 client = SSMainClient()
 
+
+async def main():
+    await asyncio.gather(
+        client.run(),
+        run(),
+    )
+    
+
 async def run():
-    while not client.client._is_running:
-        await asyncio.sleep(0.1)
-        print("Waiting")
-        
-    print("started")
+    await client.wait()
 
     map_topic = await client.topic("map", SLAMMap)
     # task_topic = await client.topic("task", TaskDatatype)
@@ -200,10 +204,5 @@ async def run():
 
         # TODO: merge maps and post
 
-async def main():
-    await asyncio.gather(
-        client.run(),
-        run(),
-    )
-    
-asyncio.run(main()) 
+
+asyncio.run(main())

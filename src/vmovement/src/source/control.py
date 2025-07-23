@@ -73,8 +73,13 @@ class TrackedRobotIK(IK):
 
 
 class MotorController:
+<<<<<<< HEAD:motors.py
+    def __init__(self, kinematics: IK, max_rpm: int = 300, max_lin_speed=2, max_ang_speed=25.4, port=("COM6" if platform.system() == "Windows" else "/dev/ttyMotors")):
+        self.ser = serial.Serial(port, 9600)
+=======
     def __init__(self, kinematics: IK, serial_conn: serial.SerialTransport, max_rpm: int = 300, max_lin_speed=2, max_ang_speed=25.4):
         self.ser = serial_conn
+>>>>>>> 6f2bbeaf920568a6df527a036c2d62e3e383e5d7:src/vmovement/src/source/control.py
         self.max_rpm = max_rpm
         
         self.left = 0
@@ -129,7 +134,7 @@ class MotorController:
         delta_x = x - self.x
         delta_y = y - self.y
         
-        angle = np.atan2(delta_y, delta_x) - (np.pi if delta_x < 0 else 0)
+        angle = np.arctan2(delta_y, delta_x) - (np.pi if delta_x < 0 else 0)
         distance = np.linalg.norm([delta_x, delta_y])
         
         result, rt = await self.rotate_to(angle, t=t/3, high_precision=high_precision) # rotate to (dx; dy) vector direction

@@ -89,7 +89,8 @@ def smooth_path(path, grid, alpha=0.5, beta=0.1, iterations=100):
             obs_force = obstacle_force(path[i], grid)
             path[i] += (alpha * original + \
                     beta * smoothness + \
-                    0.2 * obs_force).astype(np.uint32)
+                    0.2 * obs_force).astype(int)
+            
     return path
 
 def obstacle_force(point, grid, radius=4):
