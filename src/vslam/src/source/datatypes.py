@@ -19,9 +19,18 @@ class SLAMMap(Datatype):
 
 class SLAMPosition(Movement):
     @staticmethod
-    def decode(data, decoders = { 0: Vector }):
-        q = Movement.decode(data, decoders)
+    def decode(data):
+        q = Movement.decode(data)
         return SLAMPosition(q.pos, q.ang)
+    
+    @staticmethod
+    def encode(data):
+        return Movement.encode(
+            Movement(
+                data.pos,
+                data.ang
+            )
+        )
 
     def pos_to_numpy(self) -> np.ndarray:
         return np.array([self.pos.x, self.pos.y, self.pos.z])

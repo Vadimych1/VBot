@@ -2,7 +2,7 @@ from miniros import AsyncROSClient
 from miniros.util.decorators import decorators
 from miniros.util.datatypes import Vector
 from miniros.util.util import Ticker
-from miniros_vslam.source.datatypes import SLAMMap, SLAMPosition, SLAMAnonSave, SLAMAnonLoad
+from miniros_vslam.source.datatypes import SLAMMap, SLAMAnonSave, SLAMAnonLoad, SLAMPosition
 import miniros_breezyslam.algorithms as algos
 import miniros_breezyslam.sensors as sensors
 import miniros_vlidar.source.datatypes as vlidar_datatypes

@@ -109,6 +109,8 @@ class SSMainClient(AsyncROSClient):
 
     @decorators.parsedata(SLAMPosition, 1)
     async def on_pos(self, data: SLAMPosition, from_node: str):
+        print("Got pos from", from_node)
+        
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 data,
@@ -159,41 +161,6 @@ ticker_05 = Ticker(0.25)
 
 client = SSMainClient()
 
-async def run():
-    while not client.client._is_running:
-        await asyncio.sleep(0.1)
-
-    map_topic = await client.topic("map", SLAMMap)
-    # task_topic = await client.topic("task", TaskDatatype)
-    otherpos_topic = await client.topic("otherpos", datatypes.Dict)
-
-    while True:
-        await ticker.tick_async()
-
-        if ticker_05.check():
-            cur.execute("SELECT * FROM Orders WHERE state = 0")
-            pending_orders = list(map(lambda v: RobotTask(*v), cur.fetchall()))
-
-            for order in pending_orders:
-                for name, robot in client.robots.items():
-                    if robot.task is None:
-                        robot.task = order
-                        await client.anon(name, "task", TaskDatatype.encode(
-                            {
-                                "id": order.id,
-                                "output_qr": order.output_qr,
-                            }
-                        ))
-
-                        break
-
-        await otherpos_topic.post(
-            {
-                k: datatypes.Vector(v.pos.pos.x, v.pos.ang.y, v.pos.pos.z) for k, v in client.robots.items() 
-            }
-        )
-
-        # TODO: merge maps and post
 
 async def main():
     await asyncio.gather(
@@ -201,6 +168,7 @@ async def main():
         run(),
     )
     
+
 async def run():
     await client.wait()
 
@@ -235,5 +203,6 @@ async def run():
         )
 
         # TODO: merge maps and post
+
 
 asyncio.run(main())
