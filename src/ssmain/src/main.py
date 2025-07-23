@@ -159,8 +159,7 @@ if __name__ == "__main__":
     client = SSMainClient()
     
     async def run():
-        while not client.client._is_running:
-            await asyncio.sleep(0.1)
+        await client.wait()
 
         map_topic = await client.topic("map", SLAMMap)
         # task_topic = await client.topic("task", TaskDatatype)

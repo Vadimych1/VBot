@@ -3,8 +3,8 @@
 pids=()
 
 # miniros server --superserver ./cfg/superserver.config.json & pids+=($!)
-miniros server > logs/server.log & 
-pids+=($!)
+# miniros server > logs/server.log & 
+# pids+=($!)
 
 miniros run vlidar > logs/vlidar.log & 
 pids+=($!)

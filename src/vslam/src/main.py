@@ -46,12 +46,10 @@ class VSLAMClient(AsyncROSClient):
 
 
     @decorators.aparsedata(vlidar_datatypes.LidarData)
-    async def on_vlidar_lidar(self, data: vlidar_datatypes.LidarData):
-        dist, ang = data.distances, data.angles
-        self.slam.update(
-            dist,
-            scan_angles_degrees=ang,
-        )
+    async def on_vlidar_lidar(self, data: vlidar_datatypes.LidarData):        
+        dist, ang = list(data.distances), list(data.angles)
+        
+        self.slam.update(scans_mm=dist, scan_angles_degrees=ang)
 
         self.slam.getmap(self.map)
         self.pos = self.slam.getpos()
@@ -82,7 +80,7 @@ async def main():
                     Vector(0, theta, 0)
                 )
             )
-    
+            
     await asyncio.gather(
         client.run(),
         run(),
