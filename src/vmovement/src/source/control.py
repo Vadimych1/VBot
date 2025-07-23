@@ -1,7 +1,23 @@
-import serial
+import serial_asyncio as serial
 import numpy as np
-import platform
-import time
+import asyncio
+
+
+class SerialReader(asyncio.Protocol):
+    def __init__(self, root: "MotorController"):
+        self.root = root
+    
+    def connection_made(self, transport):
+        self.transport = transport
+        
+    def data_received(self, data):
+        # TODO: process incoming data
+        # TODO: create return data protocol
+        ...
+        
+    def connection_lost(self, exc):
+        return
+
 
 class IK:
     def compute_wheel_speeds(self, v, w):
@@ -13,6 +29,7 @@ class IK:
         """
         
         raise NotImplementedError()
+
     
 class TrackedRobotIK(IK):
     def __init__(self, track_width, max_speed, wheel_r):
@@ -27,6 +44,7 @@ class TrackedRobotIK(IK):
         self.track_width = track_width
         self.max_speed = max_speed
         self.wheel_r = wheel_r
+
         
     def compute_wheel_speeds(self, v, w):
         """
@@ -55,8 +73,13 @@ class TrackedRobotIK(IK):
 
 
 class MotorController:
+<<<<<<< HEAD:motors.py
     def __init__(self, kinematics: IK, max_rpm: int = 300, max_lin_speed=2, max_ang_speed=25.4, port=("COM6" if platform.system() == "Windows" else "/dev/ttyMotors")):
         self.ser = serial.Serial(port, 9600)
+=======
+    def __init__(self, kinematics: IK, serial_conn: serial.SerialTransport, max_rpm: int = 300, max_lin_speed=2, max_ang_speed=25.4):
+        self.ser = serial_conn
+>>>>>>> 6f2bbeaf920568a6df527a036c2d62e3e383e5d7:src/vmovement/src/source/control.py
         self.max_rpm = max_rpm
         
         self.left = 0
@@ -77,6 +100,7 @@ class MotorController:
         self.max_ang_speed = max_ang_speed
         
         self.ik = kinematics
+
         
     def set_position(self, x, y, w):
         """
@@ -91,7 +115,8 @@ class MotorController:
         self.y = y
         self.w = w
 
-    def move_to(self, x, y, t = 3, high_precision = False):
+
+    async def move_to(self, x, y, t = 3, high_precision = False):
         """
         Move robot to specific coordinates
         
@@ -112,8 +137,8 @@ class MotorController:
         angle = np.arctan2(delta_y, delta_x) - (np.pi if delta_x < 0 else 0)
         distance = np.linalg.norm([delta_x, delta_y])
         
-        result, rt = self.rotate_to(angle, t=t/3, high_precision=high_precision) # rotate to (dx; dy) vector direction
-        time.sleep(0.1) # delay to stabilize
+        result, rt = await self.rotate_to(angle, t=t/3, high_precision=high_precision) # rotate to (dx; dy) vector direction
+        await asyncio.sleep(0.07) # delay to stabilize
 
         if not result:
             return False, 0
@@ -129,22 +154,24 @@ class MotorController:
                 return False, 0
             
         l, r, scale = self.ik.compute_wheel_speeds(speed, 0)
+        t /= scale
             
         acc_stored_val = self.acc
         if high_precision:
             self.acc = 0
             
         self.set_speed(l, r)
-        self.send()
-        time.sleep(t)
+        await self.send()
+        await asyncio.sleep(t)
 
-        self.set_speed(0, 0)
+        self.stop()
         self.acc = acc_stored_val
-        self.send()
+        await self.send()
         
         return True, rt + t + 0.1
 
-    def rotate_to(self, w, t = 1.5, high_precision = False):
+
+    async def rotate_to(self, w, t = 1.5, high_precision = False):
         """
         Rotate robot to specific angle
         
@@ -170,21 +197,23 @@ class MotorController:
                 return False, 0
             
         l, r, scale = self.ik.compute_wheel_speeds(0, w_speed)
+        t /= scale
         
         acc_stored_val = self.acc
         if high_precision:
             self.acc = 0
         
         self.set_speed(l, r)
-        self.send()
-        time.sleep(t)
+        await self.send()
+        await asyncio.sleep(t)
         
-        self.set_speed(0, 0) # does not take time to accelerate
+        self.stop()
         self.acc = acc_stored_val
-        self.send()
+        await self.send()
         
         return True, t
         
+
     def set_speed(self, left: int, right: int):
         """
         Change speed of motors
@@ -209,6 +238,7 @@ class MotorController:
         self.left = left
         self.left_sign = lsign
         
+
     def stop(self):
         """
         Stop motors
@@ -218,6 +248,7 @@ class MotorController:
         
         self.change_speeds(0, 0)
     
+
     def set_lcd(self, val: bool):
         """
         Disable/enable LCD lights
@@ -225,6 +256,7 @@ class MotorController:
         
         self.lcd = 1 if val else 0
         
+
     def set_accelerate(self, val: bool):
         """
         Disable/enable motor easing acceleration
@@ -232,6 +264,7 @@ class MotorController:
         
         self.acc = 1 if val else 0
         
+
     def set_accelerate_speed(self, val: int):
         """
         Set acceleration time (100-2500, ms)
@@ -239,28 +272,12 @@ class MotorController:
         
         self.acc_time = int(val / 10)
         
-    def send(self):
+
+    async def send(self):
         """
         Send data to Arduino controller
         """
         
-        self.ser.write(bytes([
+        await self.ser.write(bytes([
             self.lcd, self.acc, self.right, self.right_sign, self.left, self.left_sign, self.acc_time
         ]))
-
-DRIVE_WHEEL_RADIUS = 0.02 # m
-TRACKS_SPACE = 0.14 # m
-MAX_RPM = 330 # rpm
-MAX_LINEAR_SPEED = 2 # m/s
-MAX_ANGULAR_SPEED = 25.4 # rad/s
-
-kinematics = TrackedRobotIK(
-    TRACKS_SPACE,
-    MAX_RPM,
-    DRIVE_WHEEL_RADIUS
-)
-controller = MotorController(kinematics, MAX_RPM, MAX_LINEAR_SPEED, MAX_ANGULAR_SPEED)
-
-time.sleep(4) # init of arduino
-
-controller.move_to(-10, -10)

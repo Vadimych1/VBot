@@ -189,20 +189,3 @@ def visualize_comparison(original, simplified):
     plt.legend()
     plt.title(f"Simplification: {len(original)} -> {len(simplified)} points")
     plt.show()
-
-
-grid = np.zeros((100, 100), dtype=np.int16)
-
-path = []
-for x in range(100):
-    path.append((x, 0))
-
-for y in range(100):
-    path.append((100, y))
-
-path = np.asarray(path, dtype=np.int16)
-
-simplified = simplify_path(path, grid)
-simplified = smooth_path(simplified, grid, iterations=40)
-
-visualize_comparison(path, simplified)
