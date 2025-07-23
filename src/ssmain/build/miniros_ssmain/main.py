@@ -109,6 +109,8 @@ class SSMainClient(AsyncROSClient):
 
     @decorators.parsedata(SLAMPosition, 1)
     async def on_pos(self, data: SLAMPosition, from_node: str):
+        print("Got pos from", from_node)
+        
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 data,
@@ -162,6 +164,9 @@ client = SSMainClient()
 async def run():
     while not client.client._is_running:
         await asyncio.sleep(0.1)
+        print("Waiting")
+        
+    print("started")
 
     map_topic = await client.topic("map", SLAMMap)
     # task_topic = await client.topic("task", TaskDatatype)
@@ -201,4 +206,4 @@ async def main():
         run(),
     )
     
-asyncio.run(main())
+asyncio.run(main()) 

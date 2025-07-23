@@ -6,4 +6,5 @@ miniros_vmovement.egg-info/SOURCES.txt
 miniros_vmovement.egg-info/dependency_links.txt
 miniros_vmovement.egg-info/top_level.txt
 miniros_vmovement/source/__init__.py
+miniros_vmovement/source/control.py
 miniros_vmovement/source/datatypes.py
