@@ -13,22 +13,6 @@
             
             "to_node": "vslam",
             "to_field": "setmap"
-        },
-
-        {
-            "from_node": "ssmain",
-            "from_field": "task",
-
-            "to_node": "vmain",
-            "to_field": "task"
-        },
-
-        {
-            "from_node": "ssmain",
-            "from_field": "otherpos",
-            
-            "to_node": "vmain",
-            "to_field": "otherpos"
         }
     ],
     "on_server": [
