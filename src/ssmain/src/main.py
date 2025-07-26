@@ -198,7 +198,7 @@ async def run():
 
         await otherpos_topic.post(
             {
-                k: datatypes.Vector(v.pos.pos.x, v.pos.ang.y, v.pos.pos.z) for k, v in client.robots.items() 
+                k: datatypes.Vector(v.pos.pos.x, v.pos.ang.y, v.pos.pos.z) for k, v in client.robots.items() if v.pos is not None and v.pos.pos is not None and v.pos.ang is not None
             }
         )
 
