@@ -138,7 +138,7 @@ class SSMainClient(AsyncROSClient):
         self.robots: dict[str, Robot] = {}
         self.generated_map: bytes = b''
 
-    @decorators.parsedata(SLAMMap, 1)
+    @decorators.aparsedata(SLAMMap, 1)
     async def on_map(self, data: SLAMMap, from_node: str):
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
@@ -150,7 +150,7 @@ class SSMainClient(AsyncROSClient):
         else:
             self.robots[from_node].map = data
 
-    @decorators.parsedata(SLAMPosition, 1)
+    @decorators.aparsedata(SLAMPosition, 1)
     async def on_pos(self, data: SLAMPosition, from_node: str):        
         if from_node not in self.robots:
             self.robots[from_node] = Robot(

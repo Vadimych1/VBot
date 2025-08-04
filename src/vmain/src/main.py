@@ -21,11 +21,11 @@ class VMainClient(AsyncROSClient):
         if data.target != self.robot_name: return
         self.task = data
     
-    @decorators.parsedata(datatypes.Dict)
+    @decorators.aparsedata(datatypes.Dict)
     async def on_otherpos(self, data, node):
         self.other_positions = data
         
-    @decorators.parsedata(datatypes.Dict)
+    @decorators.aparsedata(datatypes.Dict)
     async def on_barcodes(self, data, node):
         self.barcodes = data
         
