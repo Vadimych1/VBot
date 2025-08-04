@@ -14,10 +14,7 @@ class VCamClient(AsyncROSClient):
 
     async def on_detect(self, data: int, node: str):
         barcodes = Detector.detect(self.last_frame)
-        to_send = {
-            "l": len(barcodes),
-            **{i: k for i, k in zip(range(len(barcodes)), barcodes)}
-        }
+        to_send = {i: k for i, k in zip(range(len(barcodes)), barcodes)}
 
         self.anon(
             node,

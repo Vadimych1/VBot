@@ -15,7 +15,7 @@
         }
 
         .left-side {
-            background-color: red; 
+            background-color: white; 
             height: min(100vh, 100vw); 
             width: min(100vh, 100vw);
         }
@@ -91,30 +91,102 @@
     <noscript>Ваш браузер не поддерживает JS. Для продолжения работы используйте другой браузер или обновите этот.</noscript>
 </body>
 <script>
+    const host = window.location.host
+
     const cvs = document.querySelector("canvas");
     const ctx = cvs.getContext("2d");
+
+    async function request(path, type = "json") {
+        if (path.startsWith("/")) path = path.slice(1)
+
+        let req = await fetch("http://" + host + "/" +path)
+
+        switch (type) {
+            case "json":
+                return await req.json()
+            
+            case "plain":
+                return await req.text()
+
+            case "bytes":
+                return await req.blob()
+        }
+    }
 
     ctx.font = "30px sans-serif"
 
     const offset = 70;
     let state = {
-        "addr": "",
         "nrobots": 0,
+        "robots": [],
+        "map": null,
+        "orders": []
     };
 
+    let n = 0
     function draw(mmPerPixel = 1, dots = []) {
+        if (n % 30 == 0) {
+            request("robots").then(
+                (data) => {
+                    state.robots = data
+                }
+            )
+            request("map", "plain").then(
+                (data) => {
+                    let image = new Image();
+                    image.src = data
+                    state.map = image
+                }
+            )
+            request("get_count").then(
+                (data) => {
+                    state.nrobots = data
+                }
+            )
+            request("orders").then(
+                (data) => {
+                    state.orders = data
+                    rebuild_orders()
+                }
+            )
+        }
+
+        n += 1
+        
         ctx.clearRect(0, 0, cvs.width, cvs.height);
 
         if (state) {
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, cvs.width, offset)
             ctx.fillStyle = "white";
-            ctx.fillText("Address: " + state.addr + " | ", 10, offset - 25);
-            ctx.fillText("Robots count: " + state.nrobots + " | ", 20 + ctx.measureText("Address: " + state.addr + " | ").width, offset - 25);
+            ctx.fillText("Address: " + host + " | ", 10, offset - 25);
+            ctx.fillText("Robots count: " + state.nrobots + " | ", 20 + ctx.measureText("Address: " + host + " | ").width, offset - 25);
+
+            if (state.map != null || state.map) {
+                ctx.drawImage(state.map, 0, offset, cvs.height - offset, cvs.height - offset);
+            } else {
+                let gradient = ctx.createLinearGradient(0, 0, 100, 100);
+                gradient.addColorStop(0, "pink");
+                gradient.addColorStop(0.5, "yellow");
+                gradient.addColorStop(1, "blue");
+                ctx.fillStyle = gradient;
+
+                ctx.fillRect(0, offset, cvs.height - offset, cvs.height - offset);
+            }
         }
     }
 
     function cancel_order(id) {} // todo
+
+    function rebuild_orders() {
+        let orders = document.querySelector(".orders-list");
+        orders.innerHTML = "";
+
+        for (let order_e of state.orders) {
+            const elem = order(order_e[0], order_e[1], []);
+            orders.appendChild(elem);
+        }
+    }
 
     function order(id = "", to = "", items = []) {
         const order = document.createElement("div");
@@ -143,9 +215,37 @@
         const cancel_order = document.createElement("button");
         cancel_order.innerText = "Cancel";
         cancel_order.onclick = function () {cancel_order(id)};
+
+        return order
     }
 
     setInterval(draw, 300);
 
+
+//    Format:
+//        {
+//            "pos": [float, float],
+//            "ang": float,
+//            "task_status": int,
+//            "task": {
+//                "id": int,
+//                "dx": float,
+//                "dy": float,
+//                "items": [
+//                    {
+//                        "name": str,
+//                        "sx": float,
+//                        "sy": float,
+//                        "ex": float,
+//                        "ey": float
+//                    }
+//                ]
+//            }
+//        }
+
+//    "/": self.on_home,
+//    "/get_count": self.on_robots_count,
+//    "/map": self.on_getmap,
+//    "/robots": self.on_getrobots,
 </script>
 </html>

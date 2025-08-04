@@ -36,8 +36,10 @@ async def main():
                 for scan in client.lidar.iter_scans(min_len=360):
                     x += 1
                     
-                    if x % 3 != 0:
+                    if x < 3:
                         continue
+                    
+                    x = 0
                     
                     _, angles, distances = zip(*scan)
                 

@@ -7,7 +7,9 @@ robot:
 a:
 - task
 - otherpos
+- barcodes
 t:
+- taskdone
 
 @vlidar
 a:
@@ -16,7 +18,7 @@ t:
 
 @vpathfinder
 a:
-- end
+- settarget
 - moved
 t:
 
@@ -36,6 +38,7 @@ t:
 
 @vcam
 a:
+- detect
 t:
 - camera
 

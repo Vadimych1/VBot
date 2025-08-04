@@ -1,4 +1,5 @@
 #!/bin/bash
+ssty -echoctl
 
 pids=()
 
@@ -18,24 +19,33 @@ pids+=($!)
 miniros run vmovement > logs/vmovement.log &
 pids+=($!)
 
+miniros run vmain > logs/vmain.log &
+pids+=($!)
 
-# Function to check if background processes are still alive
+# check if background processes are still alive
 check_background_jobs() {
     for pid in "${pids[@]}"; do
         if ! ps -p "$pid" > /dev/null; then
-            echo "ERROR: Process $pid exited early"
-            exit 1
+            echo "One of processes stopped - exiting"
+            return false
         fi
     done
+
+    return true
 }
 
-# Check initial process status
-check_background_jobs
+exit_prog() {
+    echo Killing processes...
+    kill "${pids[@]}" 2>/dev/null
+    wait 2>/dev/null
+    echo Done
+}
 
-miniros run vmain
-echo OK 
+trap 'exit_prog' INT
+echo Started all scripts
 
-wait
+while check_background_jobs(); do
+    sleep 1s
+done
 
-kill "${pids[@]}" 2>/dev/null
-wait 2>/dev/null
+exit_prog()
