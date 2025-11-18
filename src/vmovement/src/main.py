@@ -74,6 +74,25 @@ async def main():
 
     await client.run()
 
+async def test():
+    kinematics = TrackedRobotIK(
+        TRACKS_SPACE,
+        MAX_RPM,
+        DRIVE_WHEEL_RADIUS
+    )
+    
+    loop = asyncio.get_event_loop()
+    serial_port = "COM6" if platform.system() == "Windows" else "/ttyUSBmotor"
+
+    controller = MotorController(kinematics, None, MAX_RPM, MAX_LINEAR_SPEED, MAX_ANGULAR_SPEED)    
+    transport, protocol = await serial.create_serial_connection(loop, lambda: SerialReader(controller), serial_port, baudrate=9600)
+    controller.ser = transport
+
+    await asyncio.sleep(3.5)
+    
+    controller.set_lcd(False)
+    controller.set_speed(160, 160)
+    controller.send()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(test())

@@ -2,6 +2,7 @@ coreslam.c
 coreslam_sisd.c
 pybreezyslam.c
 pyextension_utils.c
+pyproject.toml
 random.c
 setup.py
 ziggurat.c

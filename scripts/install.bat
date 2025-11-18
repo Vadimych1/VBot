@@ -1,5 +1,11 @@
+@echo off
+
 cd %~dp0
-cd src
+cd ../src
+
+pushd simulator
+call miniros install
+popd
 
 pushd vlidar
 call miniros install
@@ -22,5 +28,9 @@ call miniros install
 popd
 
 pushd vmain
+call miniros install
+popd
+
+pushd ssmain
 call miniros install
 popd

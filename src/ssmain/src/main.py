@@ -1,7 +1,7 @@
 import argparse
 import json
 import sqlite3 as sql
-from miniros import AsyncROSClient, datatypes, decorators
+from miniros import AsyncROSClient, datatypes, aparsedata, threaded
 from miniros.util.util import Ticker
 from miniros_vslam.source.datatypes import SLAMMap, SLAMPosition
 from miniros_ssmain.source.datatypes import RobotTask, TaskItem
@@ -11,22 +11,38 @@ from PIL import Image
 from io import BytesIO
 import base64 as b64
 import math
+import threading
+from urllib.parse import urlparse
+
 
 parser = argparse.ArgumentParser()
-parser.add_argument("cfg_file")
+parser.add_argument("ssmain_cfg_file")
+parser.add_argument("superserver_cfg_file")
 parsed = parser.parse_args()
 
 
-with open(parsed.cfg_file, "r") as f:
+with open(parsed.ssmain_cfg_file, "r") as f:
     config = json.load(f)
 
+with open(parsed.superserver_cfg_file, "r") as f:
+    ss_config = json.load(f)
 
 db_path = config["database_path"]
 
 
-conn = sql.connect(db_path)
+conn = sql.connect(db_path, check_same_thread=False)
 cur = conn.cursor()
+conn_lock = threading.Lock()
 
+def execute(sql: str, *params):
+    with conn_lock:
+        cur.execute(sql, *params)
+        conn.commit()        
+
+def fetch(sql: str, *params):
+    with conn_lock:
+        cur.execute(sql, *params)
+        return cur.fetchall()
 
 cur.executescript("""
 PRAGMA foreign_keys = ON;
@@ -132,14 +148,16 @@ class Robot:
 
 
 class SSMainClient(AsyncROSClient):
-    def __init__(self, ip = "192.168.0.104", port = 3000):
+    def __init__(self, ip = ss_config["remote_ip"], port = ss_config["remote_port"]):
         super().__init__("ssmain", ip, port)
 
         self.robots: dict[str, Robot] = {}
         self.generated_map: bytes = b''
 
-    @decorators.aparsedata(SLAMMap, 1)
+    @aparsedata(SLAMMap, 1)
     async def on_map(self, data: SLAMMap, from_node: str):
+        print("Got map")
+        
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 None,
@@ -150,8 +168,10 @@ class SSMainClient(AsyncROSClient):
         else:
             self.robots[from_node].map = data
 
-    @decorators.aparsedata(SLAMPosition, 1)
-    async def on_pos(self, data: SLAMPosition, from_node: str):        
+    @aparsedata(SLAMPosition, 1)
+    async def on_pos(self, data: SLAMPosition, from_node: str):
+        print("Got pos")
+        
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 data,
@@ -163,6 +183,8 @@ class SSMainClient(AsyncROSClient):
             self.robots[from_node].pos = data
 
     async def on_taskdone(self, data: bytes, from_node: str):
+        print("Got taskdone")
+          
         if from_node not in self.robots:
             self.robots[from_node] = Robot(
                 None,
@@ -170,7 +192,7 @@ class SSMainClient(AsyncROSClient):
                 None
             )
 
-        else:
+        elif len(data) > 0:
             val = data[0]
             
             self.robots[from_node].task_status = val
@@ -184,17 +206,15 @@ class SSMainClient(AsyncROSClient):
 
 
 class HTTPHandler(http.SimpleHTTPRequestHandler):
-    def on_home(self):
+    def on_home(self, p):
         return 200, "text/html", open("web/index.html", "r", -1, "utf-8").read()
     
-    def on_robots_count(self):
+    def on_robots_count(self, p):
         return 200, "text/json", json.dumps(len(client.robots.keys()))
     
-    def on_getmap(self):
+    def on_getmap(self, p):
         if len(client.generated_map) <= 0:
             client.generated_map = b'\x00' * 100
-            
-        print(client.generated_map, len(client.generated_map))
         
         size = int(math.sqrt(len(client.generated_map)))
         image = Image.frombytes("L", (size, size), client.generated_map).convert("RGB")
@@ -207,15 +227,16 @@ class HTTPHandler(http.SimpleHTTPRequestHandler):
         
         return 200, "text/plain", data
     
-    
-    def on_getrobots(self):
+    def on_getrobots(self, p):
         return 200, "text/json", json.dumps({k: v.encode() for k, v in client.robots.items()})
     
-    def on_getorders(self):        
+    def on_getorders(self, p):        
         return 200, "text/json", json.dumps(orders if orders is not None else [])
     
     def do_GET(self):
         path = self.path
+        p = urlparse(path)
+        path = p.path
 
         try:
             status, dtype, data = {
@@ -224,7 +245,7 @@ class HTTPHandler(http.SimpleHTTPRequestHandler):
                 "/map": self.on_getmap,
                 "/robots": self.on_getrobots,
                 "/orders": self.on_getorders,
-            }[path]()
+            }[path](p)
 
             self.send_response(status)
             self.send_header("Content-Type", dtype)
@@ -236,7 +257,7 @@ class HTTPHandler(http.SimpleHTTPRequestHandler):
 
 
 httpserver = http.HTTPServer(("localhost", 5000), HTTPHandler)
-httpthread = decorators.threaded()(httpserver.serve_forever)()
+httpthread = threaded()(httpserver.serve_forever)()
 
 
 ticker = Ticker(2)
@@ -270,30 +291,29 @@ async def run():
             cur.execute("SELECT * FROM orders WHERE status = 'pending' ORDER BY created_at")
             orders = cur.fetchall()
             
-            for name in client.robots:
-                robot = client.robots[name]
-                
-                if robot.task is None:
-                    id, delivery_point_id, created_at, status = orders.pop(0)
+            for id, delivery_point_id, created_at, status in orders:
+                for name in client.robots:
+                    robot = client.robots[name]
                     
-                    # update task status
-                    cur.execute("UPDATE orders SET status = 'processing' WHERE id = ?", id)
-                    conn.commit()
-                    
-                    # get delivery point coordinates
-                    cur.execute("SELECT x, y FROM delivery_points WHERE id = ?", delivery_point_id)
-                    dx, dy = cur.fetchone()
-                    
-                    # get delivery items
-                    cur.execute("SELECT p.id, p.name, s.start_x, s.start_y, s.end_x, s.end_y FROM order_items oi \
-                        JOIN products p ON p.id = oi.product_id \
-                        JOIN shelves s ON s.id = p.shelf_id WHERE oi.order_id = ?", id)
-                    
-                    items = list(map(lambda x: TaskItem(*x), cur.fetchall()))
-                    
-                    robot.task = RobotTask(delivery_point_id, dx, dy, items, name)
-                    task_topic.post(robot.task)
-                    
+                    if robot.task is None:        
+                        # update task status
+                        cur.execute("UPDATE orders SET status = 'processing' WHERE id = ?", id)
+                        conn.commit()
+                        
+                        # get delivery point coordinates
+                        cur.execute("SELECT x, y FROM delivery_points WHERE id = ?", delivery_point_id)
+                        dx, dy = cur.fetchone()
+                        
+                        # get delivery items
+                        cur.execute("SELECT p.id, p.name, s.start_x, s.start_y, s.end_x, s.end_y FROM order_items oi \
+                            JOIN products p ON p.id = oi.product_id \
+                            JOIN shelves s ON s.id = p.shelf_id WHERE oi.order_id = ?", id)
+                        
+                        items = list(map(lambda x: TaskItem(*x), cur.fetchall()))
+                        
+                        robot.task = RobotTask(delivery_point_id, dx, dy, items, name)
+                        task_topic.post(robot.task)
+                        
 
         await otherpos_topic.post(
             {
@@ -301,7 +321,8 @@ async def run():
             }
         )
 
-        # TODO: merge maps and post
-
+        if len(client.robots.keys()) > 0:
+            if client.robots[list(client.robots.keys())[0]].map is not None:
+                client.generated_map = client.robots[list(client.robots.keys())[0]].map.data
 
 asyncio.run(main())

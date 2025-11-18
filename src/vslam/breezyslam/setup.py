@@ -28,10 +28,12 @@ for x in ["breezyslam/build", "build", "vslam/breezyslam/build"]:
         shutil.rmtree(x)
         ok = True
         break
-    except: pass
-if not ok:
-    print("cd to 'vslam'")
-    quit()
+    except Exception as e:
+        print(e)
+        
+# if not ok:
+#     print("cd to 'vslam'")
+#     quit()
 
 OPT_FLAGS  = []
 SIMD_FLAGS = []

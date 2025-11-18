@@ -1,6 +1,4 @@
-from miniros import AsyncROSClient
-from miniros.util.decorators import decorators
-from miniros.util.datatypes import Vector
+from miniros import AsyncROSClient, datatypes, decorators
 from miniros.util.util import Ticker
 from miniros_vslam.source.datatypes import SLAMMap, SLAMPosition
 import miniros_vpathfinder.source.algorithms as algos
@@ -27,12 +25,12 @@ class VPathfinderClient(AsyncROSClient):
         
         self.send_result_to = None
 
-    @decorators.aparsedata(Vector)
-    async def on_settarget(self, data: Vector, node: str):
+    @decorators.aparsedata(datatypes.Vector)
+    async def on_settarget(self, data: datatypes.Vector, node: str):
         # data.y > 0 means stop
         if data.y != 0:
             self.p_alive = False
-            await self.anon("vmovement", "moveto", Vector.encode(Vector(0, 1, 0)))
+            await self.anon("vmovement", "moveto", datatypes.Vector.encode(datatypes.Vector(0, 1, 0)))
         
         if not self.p_alive:
             self.p_end = (data.x, data.z)
@@ -51,6 +49,8 @@ class VPathfinderClient(AsyncROSClient):
     async def on_vslam_pos(self, data: SLAMPosition):
         self.s_pos = data.pos_to_numpy()
         self.s_ang = data.rot_to_numpy()
+        
+        print(f"Current pos: xyz{self.s_pos} rpy{self.s_ang}")
 
     async def on_moved(self, data: bytes, node: str):
         if self.p_path is not None and self.p_path_built:
@@ -61,8 +61,8 @@ class VPathfinderClient(AsyncROSClient):
 
             next_pos = self.p_path
 
-            await self.anon(node, "moveto", Vector.encode(
-                Vector(next_pos[0], 0 + next_ind == prev_ind, next_pos[1])  
+            await self.anon(node, "moveto", datatypes.Vector.encode(
+                datatypes.Vector(next_pos[0], 0 + next_ind == prev_ind, next_pos[1])  
             ))
 
     def build_path(self):
@@ -108,6 +108,7 @@ async def main():
                 
             elif client.send_result_to is not None:
                 await client.anon(client.send_result_to, "movementdone", b'k')
+                client.send_result_to = None
 
     await asyncio.gather(
         client.run(),

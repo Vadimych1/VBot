@@ -1,4 +1,4 @@
-from miniros import AsyncROSClient, datatypes, decorators, utils
+from miniros import AsyncROSClient, datatypes, utils, aparsedata
 from miniros_ssmain.source.datatypes import RobotTask
 import asyncio
 import argparse
@@ -16,16 +16,18 @@ class VMainClient(AsyncROSClient):
         self.other_positions: dict[str, datatypes.Vector] = {}
         self.barcodes: dict[int, str] | None = None
         
-    @decorators.aparsedata(RobotTask)
+    @aparsedata(RobotTask)
     async def on_task(self, data: RobotTask, node):
+        if data is None: return
         if data.target != self.robot_name: return
+        
         self.task = data
     
-    @decorators.aparsedata(datatypes.Dict)
+    @aparsedata(datatypes.Dict)
     async def on_otherpos(self, data, node):
         self.other_positions = data
         
-    @decorators.aparsedata(datatypes.Dict)
+    @aparsedata(datatypes.Dict)
     async def on_barcodes(self, data, node):
         self.barcodes = data
         

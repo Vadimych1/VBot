@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<package>
+	<name>simulator</name>
+	
+	<entrypoint>main.py</entrypoint>
+	
+	<requires>
+		<requirement>miniros</requirement>
+	</requires>
+	
+	<maintainer>Vadimych1</maintainer>
+	
+	<description>VBot Simulation Node</description>
+	
+	<authors>
+		<author>Vadimych1</author>
+	</authors>
+
+	<python-packages>
+		<package>pyserial-asyncio</package>
+	</python-packages>
+	
+	<linux-scripts>
+		<lscript/>
+	</linux-scripts>
+	
+	<windows-scripts>
+		<wscript/>
+	</windows-scripts>
+</package>

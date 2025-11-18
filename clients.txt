@@ -1,5 +1,5 @@
 ! NOTE: this is just an annotation of how nodes are presented in MiniROS system
-! nothing will change if you replace something in this files
+! nothing will change if you replace something in this file
 
 robot:
 

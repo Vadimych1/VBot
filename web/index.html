@@ -125,12 +125,12 @@
 
     let n = 0
     function draw(mmPerPixel = 1, dots = []) {
-        if (n % 30 == 0) {
-            request("robots").then(
-                (data) => {
-                    state.robots = data
-                }
-            )
+        if (n % 2 == 0) {
+            //request("robots").then(
+            //    (data) => {
+            //        state.robots = data
+            //    }
+            //)
             request("map", "plain").then(
                 (data) => {
                     let image = new Image();

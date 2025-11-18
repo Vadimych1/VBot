@@ -1,6 +1,4 @@
-from miniros import AsyncROSClient
-from miniros.util.decorators import decorators
-from miniros_vlidar.source.datatypes import LidarData
+from miniros import AsyncROSClient, datatypes, decorators
 # import adafruit_rplidar as pyrplidar
 import rplidar
 import asyncio
@@ -24,7 +22,7 @@ async def main():
     async def run():
         await client.wait()
 
-        ldr_topic = await client.topic("lidar", LidarData)
+        ldr_topic = await client.topic("lidar", datatypes.LidarDatatype)
 
         client.lidar.start_motor()
 
@@ -44,7 +42,7 @@ async def main():
                     _, angles, distances = zip(*scan)
                 
                     await ldr_topic.post(
-                        LidarData(
+                        datatypes.LidarDatatype(
                             list(distances),
                             list(angles),
                         )
